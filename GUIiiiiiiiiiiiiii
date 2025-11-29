@@ -1,0 +1,280 @@
+--=========================================================
+-- MODULESCRIPT PRINCIPAL QUI REGROUPE TOUTES LES FONCTIONS
+--=========================================================
+
+local GuiController = {}
+
+local Players = game:GetService("Players")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local Debris = game:GetService("Debris")
+
+-----------------------------------------------------------
+-- 1) SKYBOX TOGGLE
+-----------------------------------------------------------
+local skyboxActive = false
+
+function GuiController.ToggleSkybox()
+	skyboxActive = not skyboxActive
+
+	if skyboxActive then
+		local sky = Instance.new("Sky")
+		sky.Name = "CustomSky"
+
+		local id = "rbxassetid://101876030533180"
+		sky.SkyboxBk = id
+		sky.SkyboxDn = id
+		sky.SkyboxFt = id
+		sky.SkyboxLf = id
+		sky.SkyboxRt = id
+		sky.SkyboxUp = id
+
+		sky.Parent = Lighting
+	else
+		local oldSky = Lighting:FindFirstChild("CustomSky")
+		if oldSky then oldSky:Destroy() end
+	end
+end
+
+-----------------------------------------------------------
+-- 2) MUSIQUE GLOBALE
+-----------------------------------------------------------
+local function playGlobalMusic(id)
+	local old = Workspace:FindFirstChild("GlobalMusic")
+	if old then old:Destroy() end
+
+	local sound = Instance.new("Sound")
+	sound.SoundId = id
+	sound.Volume = 1
+	sound.Looped = true
+	sound.Name = "GlobalMusic"
+	sound.Parent = Workspace
+	sound:Play()
+end
+
+function GuiController.PlayMusic1()
+	playGlobalMusic("rbxassetid://100828050594137")
+end
+
+function GuiController.PlayMusic2()
+	playGlobalMusic("rbxassetid://1839246711")
+end
+
+function GuiController.StopMusic()
+	local sound = Workspace:FindFirstChild("GlobalMusic")
+	if sound then
+		sound:Stop()
+		sound:Destroy()
+	end
+end
+
+-----------------------------------------------------------
+-- 3) DECAL TOGGLE
+-----------------------------------------------------------
+local decalActive = false
+
+function GuiController.ToggleDecal()
+	decalActive = not decalActive
+
+	local DECAL_ID = "rbxassetid://101876030533180"
+
+	-- OFF
+	if not decalActive then
+		for _, obj in pairs(Workspace:GetDescendants()) do
+			local decal = obj:FindFirstChild("CustomDecal")
+			if decal then decal:Destroy() end
+		end
+
+		for _, player in pairs(Players:GetPlayers()) do
+			if player.Character then
+				for _, p in pairs(player.Character:GetDescendants()) do
+					local decal = p:FindFirstChild("CustomDecal")
+					if decal then decal:Destroy() end
+				end
+			end
+		end
+
+		return
+	end
+
+	-- ON
+	for _, obj in pairs(Workspace:GetDescendants()) do
+		if obj:IsA("BasePart") and not obj:FindFirstChild("CustomDecal") then
+			local d = Instance.new("Decal")
+			d.Name = "CustomDecal"
+			d.Texture = DECAL_ID
+			d.Face = Enum.NormalId.Top
+			d.Parent = obj
+		end
+	end
+
+	for _, player in pairs(Players:GetPlayers()) do
+		if player.Character then
+			for _, p in pairs(player.Character:GetDescendants()) do
+				if p:IsA("BasePart") and not p:FindFirstChild("CustomDecal") then
+					local d = Instance.new("Decal")
+					d.Name = "CustomDecal"
+					d.Texture = DECAL_ID
+					d.Face = Enum.NormalId.Front
+					d.Parent = p
+				end
+			end
+		end
+	end
+end
+
+-----------------------------------------------------------
+-- 4) PARTICLES AUTOUR DES JOUEURS
+-----------------------------------------------------------
+local particlesRunning = false
+
+function GuiController.ToggleParticles()
+	particlesRunning = not particlesRunning
+
+	if particlesRunning then
+		task.spawn(function()
+			while particlesRunning do
+				for _, player in pairs(Players:GetPlayers()) do
+					if player.Character and player.Character:FindFirstChild("Head") then
+						local part = Instance.new("Part")
+						part.Size = Vector3.new(0.5, 0.5, 0.5)
+						part.Anchored = true
+						part.CanCollide = false
+						part.CFrame = player.Character.Head.CFrame
+						part.Parent = Workspace
+
+						local emitter = Instance.new("ParticleEmitter")
+						emitter.Texture = "rbxassetid://101876030533180"
+						emitter.Rate = 50
+						emitter.Lifetime = NumberRange.new(1,2)
+						emitter.Speed = NumberRange.new(2,5)
+						emitter.VelocitySpread = 120
+						emitter.Parent = part
+
+						Debris:AddItem(part, 3)
+					end
+				end
+				task.wait(0.2)
+			end
+		end)
+	end
+end
+
+-----------------------------------------------------------
+-- 5) MESSAGES FULLSCREEN
+-----------------------------------------------------------
+local function sendMessageToAll(text)
+	for _, player in pairs(Players:GetPlayers()) do
+		local gui = Instance.new("ScreenGui")
+		gui.ResetOnSpawn = false
+		gui.Parent = player:WaitForChild("PlayerGui")
+
+		local bg = Instance.new("Frame")
+		bg.Size = UDim2.new(1,0,1,0)
+		bg.BackgroundColor3 = Color3.fromRGB(50,50,50)
+		bg.BackgroundTransparency = 0.5
+		bg.Parent = gui
+
+		local label = Instance.new("TextLabel")
+		label.Size = UDim2.new(0.3,0,0.1,0)
+		label.Position = UDim2.new(0.35,0,0.45,0)
+		label.BackgroundTransparency = 1
+		label.Font = Enum.Font.GothamBold
+		label.TextColor3 = Color3.new(1,1,1)
+		label.TextSize = 36
+		label.Text = text
+		label.Parent = gui
+
+		Debris:AddItem(gui, 3)
+	end
+end
+
+function GuiController.Message1()
+	sendMessageToAll("Trularula is here")
+end
+
+function GuiController.Message2()
+	sendMessageToAll("Saved by Trularula")
+end
+
+-----------------------------------------------------------
+-- 6) DISCO MODE
+-----------------------------------------------------------
+local discoActive = false
+
+function GuiController.ToggleDisco()
+	discoActive = not discoActive
+
+	if discoActive then
+		task.spawn(function()
+			while discoActive do
+				local c = Color3.fromRGB(math.random(255), math.random(255), math.random(255))
+				Lighting.Ambient = c
+				Lighting.OutdoorAmbient = c
+				Lighting.FogColor = c
+				task.wait(0.3)
+			end
+		end)
+	else
+		Lighting.Ambient = Color3.new(0,0,0)
+		Lighting.OutdoorAmbient = Color3.new(0.5,0.5,0.5)
+		Lighting.FogColor = Color3.new(1,1,1)
+	end
+end
+
+-----------------------------------------------------------
+-- 7) IMAGE + SON PLEIN ÉCRAN
+-----------------------------------------------------------
+function GuiController.ImageAndSound()
+	for _, player in pairs(Players:GetPlayers()) do
+		local gui = Instance.new("ScreenGui")
+		gui.ResetOnSpawn = false
+		gui.Parent = player:WaitForChild("PlayerGui")
+
+		local img = Instance.new("ImageLabel")
+		img.Size = UDim2.new(1,0,1,0)
+		img.BackgroundTransparency = 1
+		img.Image = "rbxassetid://101876030533180"
+		img.Parent = gui
+
+		local sound = Instance.new("Sound")
+		sound.SoundId = "rbxassetid://103215672097028"
+		sound.Volume = 1
+		sound.Parent = gui
+		sound:Play()
+
+		Debris:AddItem(gui, 4)
+	end
+end
+
+-----------------------------------------------------------
+-- 8) FEU SUR LES JOUEURS
+-----------------------------------------------------------
+local fireActive = false
+
+function GuiController.ToggleFire()
+	fireActive = not fireActive
+
+	for _, player in pairs(Players:GetPlayers()) do
+		if player.Character then
+			for _, part in pairs(player.Character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					local exist = part:FindFirstChild("BigFire")
+
+					if fireActive and not exist then
+						local fire = Instance.new("Fire")
+						fire.Name = "BigFire"
+						fire.Size = 15
+						fire.Heat = 15
+						fire.Parent = part
+					elseif not fireActive and exist then
+						exist:Destroy()
+					end
+
+				end
+			end
+		end
+	end
+end
+
+return GuiController
